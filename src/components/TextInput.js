@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
+import InputStyle from '../styles/InputStyle';
+
+const { container, input, labelStyle } = InputStyle;
 
 const TextInput = props => {
-    const { label, style, value, setter } = props;
+    const { label, value, setter, isCol, hidRender } = props;
+
+    const handleChange = (e) => {
+        const updateField = isCol ? "col" : "row";
+        const fieldVal = !Number.isNaN(Number(e.target.value)) ? Number(e.target.value) : 0;
+        if(fieldVal === 0) return;
+        setter(p => ({ ...p, [updateField]: fieldVal }));
+    };
 
     return (
-        <div style={{ display: 'flex', ...style }}>
-            <label for="name">{label}</label>
-            <input type="text" value={value} onChange={(e => { console.log(e)})} required />
+        <div style={container}>
+            <label style={labelStyle}>{label}</label>
+            <input style={input} type="text" value={value} onClick={hidRender} onChange={handleChange} maxLength={3} />
         </div>
     )
 };
