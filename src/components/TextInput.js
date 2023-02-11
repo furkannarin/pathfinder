@@ -4,7 +4,7 @@ import InputStyle from '../styles/InputStyle';
 const { container, input, labelStyle } = InputStyle;
 
 const TextInput = props => {
-    const { label, value, setter, isCol, hidRender } = props;
+    const { label, value, setter, isCol, hidRender, disabled } = props;
 
     const handleChange = (e) => {
         const updateField = isCol ? "col" : "row";
@@ -16,7 +16,7 @@ const TextInput = props => {
     return (
         <div style={container}>
             <label style={labelStyle}>{label}</label>
-            <input style={input} type="text" value={value} onClick={hidRender} onChange={handleChange} maxLength={3} />
+            <input disabled={disabled} style={input} type="text" value={value} onClick={hidRender} onChange={handleChange} maxLength={3} />
         </div>
     )
 };

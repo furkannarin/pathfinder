@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import GridStyle from '../styles/GridStyle';
 import TextInput from './TextInput';
+import algorithm from '../algorithm'
 
 const { container, rows, cell, gridContainer, runBtn, inputContainers, buttonStyle, paintBtns } = GridStyle;
 
@@ -24,6 +25,7 @@ const CreateGridUnits = (col, row, returnIndices = false) => {
 };
 
 const Grid = () => {
+    const [disableAll, setDisableAll] = useState(false)
     const [ gridSize, setSize ] = useState({ col: 12, row: 33 })
     const [ mode, setMode ] = useState(null) // can either be "obstacle" or "destination"
 
@@ -34,6 +36,8 @@ const Grid = () => {
     const [destinations, setDestinations] = useState({ start: null, end: null, selectedBoth: false }) // start and end indexes to run the algorithm against
     const [openCells, setOpened] = useState(CreateGridUnits(gridSize.col, gridSize.row, true));
     const [closedCells, setClosed] = useState([]);
+
+    const [path, setPath] = useState([]); // path the algorithm takes
 
    const handleClick = (colIdx, rowIdx) => {
         if(!mode) {
@@ -83,14 +87,18 @@ const Grid = () => {
         <div style={container}>
             <div style={inputContainers}>
                 <div style={{ display: 'flex', flex: 1, flexDirection: renderGrid ? 'row' : 'column' }}>
-                    <TextInput label="Enter Columns" value={gridSize.col} setter={setSize} hidRender={() => setGrid(false)} isCol />
-                    <TextInput label="Enter Rows" value={gridSize.row} setter={setSize} hidRender={() => setGrid(false)} />
+                    <TextInput disabled={disableAll} label="Enter Columns" value={gridSize.col} setter={setSize} hidRender={() => setGrid(false)} isCol />
+                    <TextInput disabled={disableAll} label="Enter Rows" value={gridSize.row} setter={setSize} hidRender={() => setGrid(false)} />
                 </div>
                 <div style={{ display: 'flex', flex: 1, flexDirection:'row', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                    {!renderGrid && <button style={buttonStyle(renderGrid)} disabled={isGridDetermined} onClick={() => setGrid(true)}>OK</button>}
-                    {renderGrid && <button style={paintBtns(mode === 'obstacle')} onClick={() => setMode('obstacle')}>Create Obstacle</button>}
-                    {renderGrid && <button style={paintBtns(mode === 'destination')} onClick={() => setMode('destination')}>Set Destination</button>}
-                    {renderGrid && <button disabled={canRunAlgorithm} style={runBtn(canRunAlgorithm)} onClick={() => { }}>Find The Shortest Route</button>}
+                    {!renderGrid && <button style={buttonStyle(renderGrid)} disabled={disableAll || isGridDetermined} onClick={() => setGrid(true)}>OK</button>}
+                    {renderGrid && <button disabled={disableAll} style={paintBtns(mode === 'obstacle')} onClick={() => setMode('obstacle')}>Create Obstacle</button>}
+                    {renderGrid && <button disabled={disableAll} style={paintBtns(mode === 'destination')} onClick={() => setMode('destination')}>Set Destination</button>}
+                    {renderGrid && <button disabled={disableAll || canRunAlgorithm} style={runBtn(canRunAlgorithm)} onClick={() => {
+                        setDisableAll(true);
+                        algorithm(destinations, openCells, setPath);
+                        setDisableAll(false);
+                    }}>Find The Shortest Route</button>}
                 </div>
             </div>
             { renderGrid &&
