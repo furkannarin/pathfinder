@@ -1,5 +1,7 @@
 let openNodes = [];
-let target = {}
+let target = {};
+
+// const sleep = (duration = 20) => new Promise(res => setTimeout(res, duration));
 
 const getDistanceToNode = (nodeCoordinates, destinationCoordinates) => {
     // send end destinations for distance to end destination
@@ -13,7 +15,7 @@ const getDistanceToNode = (nodeCoordinates, destinationCoordinates) => {
     return Math.trunc(Math.sqrt(Math.pow(nodeX - destX, 2) + Math.pow(nodeY - destY, 2)) * 10);
 };
 
-const findSurroundingNode = (i, coordinates) => {
+const findSurroundingNodes = (coordinates) => {
     const y = coordinates[0];
     const x = coordinates[1];
 
@@ -26,79 +28,90 @@ const findSurroundingNode = (i, coordinates) => {
     const right_down = [y - 1, x + 1];
     const right_up = [y + 1, x + 1];
 
-    const result = {};
-    if (i === 0) result.coordinates = left;
-    if (i === 1) result.coordinates = left_down;
-    if (i === 2) result.coordinates = left_up;
-    if (i === 3) result.coordinates = down;
-    if (i === 4) result.coordinates = up;
-    if (i === 5) result.coordinates = right;
-    if (i === 6) result.coordinates = right_down;
-    if (i === 7) result.coordinates = right_up;
+    const nodes = [left, left_down, left_up, down, up, right, right_down, right_up];
+    const open = [];
 
     // check if these coordinates are open nodes
-    if (Array.isArray(openNodes[result.coordinates[0]])) {
-        if (openNodes[result.coordinates[0]].length > 0) {
-            const nodeExists = openNodes[result.coordinates[0]].includes(result.coordinates[1]);
-            if(!nodeExists) return null;
+    nodes.forEach(node => {
+        const nodeY = node[0];
+        const nodeX = node[1];
 
-            const toDest = getDistanceToNode(result.coordinates, target.end);
-            const fromStart = getDistanceToNode(result.coordinates, target.start);
+        if (Array.isArray(openNodes[nodeY])) {
+            // console.log('ARRAY EXISTS');
+            if (openNodes[nodeY].length > 0) {
+                // console.log('ARRAY HAS ITEMS');
+                const nodeExists = openNodes[nodeY].includes(nodeX);
+                // console.log(openNodes[nodeY], nodeX)
+                if (!nodeExists) return null;
+                // console.log('NODE EXISTS');
 
-            return { ...result, toDest, fromStart, totalCost: toDest + fromStart }
+                const toDest = getDistanceToNode(node, target.end);
+                const fromStart = getDistanceToNode(node, target.start);
+
+                open.push({ coordinates: [ nodeY, nodeX ], toDest, fromStart, totalCost: toDest + fromStart });
+            }
         }
-    }
+    });
 
-    return null;
+    // console.log('OPEN NEIGHBOUR COUNT >> ', open.length);
+    return open;
 };
 
 const selectCheapestRoute = (nodes) => {
-    let minCost = 1000000000000000;
-    let costOfMoving = 1000000000000000;
-    let selection = null;
-
-    nodes.forEach(n => {
-        if (n.toDest <= minCost) {
-            if(n.fromStart <= costOfMoving) {
-                minCost = n.toDest;
-                selection = n;
-            }
+    const selection = nodes.reduce((n1, n2) => {
+        if (n1.totalCost < n2.totalCost) return n1;
+        if (n1.totalCost > n2.totalCost) return n2;
+        if (n1.totalCost === n2.totalCost) {
+            return n1.fromStart < n2.fromStart ? n1 : n2;
         }
-    })
+    });
 
-    console.log(selection)
-    return selection;
-}
+    const y = selection.coordinates[0];
+    const x = selection.coordinates[1];
 
-const run = (destinations, openCells, setPath) => {
+    openNodes[y] = openNodes[y].filter(c => c !== x);
+
+    return selection.coordinates;
+};
+
+const run = async (destinations, openCells, setPath) => {
     openNodes = openCells;
     target = destinations;
 
     const { end, start } = destinations;
     let currentNode = start;
 
-    const path = [];
-    let nodes = [];
+    const path = { selection: [], route: [] };
+    let noPath = { st: false, iter: null };
 
     let iter = 0;
     while(currentNode[0] !== end[0] || currentNode[1] !== end[1]) {
-        // increment 8 times because 8 is the maximum number of nodes a node can have in its surrounding
-        for (let i = 0; i < 8; i++) {
-            const node = findSurroundingNode(i, currentNode); // an object containing the distance data of one of the surrounding nodes to the destination node
-            if (node) nodes.push(node);
+        // an object containing the distance data of one of the surrounding nodes to the destination node
+        const nodes = findSurroundingNodes(currentNode);
+        if(nodes.length < 1) {
+            noPath.st = true;
+            noPath.iter = iter;
+            setPath(path);
+            window.alert(`No available paths could be found at ${iter}th iteration`)
+            break;
         }
 
         const selection = selectCheapestRoute(nodes);
         if(selection) {
-            currentNode = selection.coordinates;
-            path.push(selection.coordinates);
+            currentNode = selection;
+            path.selection.push(selection);
+            nodes.forEach(p => path.route.push(p.coordinates));
         }
-        nodes = [];
-        iter++;
-        if(iter > 15) break;
+
+
+        iter++
+        if(iter > 10000) {
+            window.alert('Stopped the algorithm because it has iterated for 10.000 times!')
+            break;
+        }
     }
 
-    // console.log(path)
+    if (!noPath.st) setPath(path);
 };
 
 export default run;
